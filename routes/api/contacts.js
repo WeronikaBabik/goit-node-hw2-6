@@ -9,17 +9,6 @@ const {
 
 const contactValidationMiddleware = require("../../models/validators");
 
-// const schema = Joi.object({
-//   name: Joi.string().required(),
-//   email: Joi.string().required(),
-//   phone: Joi.string().required(),
-// });
-// const schemaPut = Joi.object({
-//   name: Joi.string(),
-//   email: Joi.string(),
-//   phone: Joi.string(),
-// });
-
 const router = express.Router();
 
 router.get("/", async (req, res, next) => {
@@ -30,7 +19,7 @@ router.get("/", async (req, res, next) => {
 router.get("/:contactId", async (req, res, next) => {
   const contactById = await getContactById(req.params.contactId);
   if (!contactById) {
-    return res.status(404).json({ message: "Not found" });
+    res.status(404).json({ message: "Not found" });
   }
   return res.status(200).send({ contactById });
 });
@@ -40,7 +29,7 @@ router.post("/", async (req, res, next) => {
     const { error } = contactValidationMiddleware.validate(req.body);
     if (error) {
       const missingField = error.details[0].context.label;
-      return res
+      res
         .status(400)
         .json({ message: `missing required field: ${missingField}` });
     }
@@ -52,13 +41,13 @@ router.post("/", async (req, res, next) => {
     const newContact = await addContact(contact);
     return res.status(201).send({ newContact });
   } catch (error) {}
-  return res.status(404).json({ message: "Not found" });
+  res.status(404).json({ message: "Not found" });
 });
 
 router.delete("/:contactId", async (req, res, next) => {
   const contactToDelete = await removeContact(req.params.contactId);
   if (!contactToDelete) {
-    return res.status(404).json({ message: "Not found" });
+    res.status(404).json({ message: "Not found" });
   }
   return res.status(200).send({ message: "contact deleted" });
 });
@@ -68,15 +57,13 @@ router.put("/:contactId", async (req, res, next) => {
     const { error } = contactValidationMiddleware.validate(req.body);
     if (error) {
       const missingField = error.details[0].context.label;
-      return res
-        .status(400)
-        .json({ message: `missing fields: ${missingField}` });
+      res.status(400).json({ message: `missing fields: ${missingField}` });
     }
     await updateContact(req.params.contactId, req.body);
     const updatedContact = await getContactById(req.params.contactId);
     return res.status(200).send({ updatedContact });
   } catch (error) {
-    return res.status(404).json({ message: "Not found" });
+    res.status(404).json({ message: "Not found" });
   }
 });
 
