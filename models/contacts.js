@@ -1,41 +1,26 @@
-const fs = require("fs/promises");
-const path = require("path");
-const nanoid = require("nanoid");
-
-const contactsPath = path.resolve(__dirname, "contacts.json");
+const { Contact } = require("./model");
 
 const listContacts = async () => {
   try {
-    const data = await fs.readFile(contactsPath);
-    return JSON.parse(data);
+    return await Contact.find();
   } catch (e) {
     console.log(e.message);
   }
 };
-function saveData(data) {
-  try {
-    fs.writeFile(contactsPath, JSON.stringify(data, null, 2));
-  } catch (e) {
-    console.log(e);
-  }
-}
 
 const getContactById = async (contactId) => {
   try {
-    const contacts = await listContacts();
-    const searchedContact = contacts.find(({ id }) => id === contactId);
-    return searchedContact || null;
+    const contact = await Contact.findById(contactId);
+    return contact;
   } catch (e) {
     console.log(e.message);
+    return null;
   }
 };
 
 const removeContact = async (contactId) => {
   try {
-    const contacts = await listContacts();
-    const newContacts = contacts.filter(({ id }) => id !== contactId);
-    saveData(newContacts);
-    return contacts;
+    await Contact.findByIdAndRemove(contactId);
   } catch (e) {
     console.log(e.message);
   }
@@ -43,28 +28,44 @@ const removeContact = async (contactId) => {
 
 const addContact = async (body) => {
   try {
-    const newContact = { id: nanoid(), ...body };
-    const contacts = await listContacts();
-    const newContacts = [...contacts, newContact];
-    saveData(newContacts);
-    return newContact;
+    const newContact = new Contact(body);
+    const contacts = await newContact.save();
+    return contacts;
   } catch (e) {
     console.log(e.message);
+    return null;
   }
 };
 
 const updateContact = async (contactId, body) => {
-  const contacts = await listContacts();
-  const indexOfuUpdatedContact = contacts.findIndex(
-    (contact) => contact.id === contactId
-  );
-  if (indexOfuUpdatedContact === -1) {
+  try {
+    const contacts = await Contact.findByIdAndUpdate(contactId, body, {
+      new: true,
+    });
+    return contacts;
+  } catch (e) {
+    console.log(e.message);
     return null;
   }
-  contacts[indexOfuUpdatedContact] = { id: contactId, ...body };
-  saveData(contacts);
-  console.log(contacts);
-  return contacts;
+};
+
+const updateStatusContact = async (contactId, body) => {
+  try {
+    const { favorite } = body;
+    if (!favorite) {
+      console.log("missing field favorite");
+      return;
+    }
+    const contact = await Contact.findByIdAndUpdate(
+      { _id: contactId },
+      { favorite: favorite },
+      { new: true }
+    );
+    return contact;
+  } catch (e) {
+    console.log(e.message);
+    return null;
+  }
 };
 
 module.exports = {
@@ -73,4 +74,5 @@ module.exports = {
   removeContact,
   addContact,
   updateContact,
+  updateStatusContact,
 };
