@@ -6,8 +6,8 @@ const {
   deleteContact,
   updateContactById,
   updateFavoriteById,
-} = require("../../models/controller");
-const { isValidId } = require("../../models/validators");
+} = require("../../contacts/controller");
+const { isValidId } = require("../../contacts/validators");
 const router = express.Router();
 
 router.get("/", getListOfContacts);
