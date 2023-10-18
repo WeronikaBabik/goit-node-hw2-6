@@ -1,5 +1,6 @@
 const { Schema, model } = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { UnknownDatabaseError } = require("../errors");
 
 const userSchema = new Schema(
   {
@@ -26,15 +27,24 @@ const userSchema = new Schema(
 );
 
 userSchema.pre("save", async function () {
-  if (!this.password) {
-    return;
+  try {
+    if (!this.password) {
+      return;
+    }
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  } catch (error) {
+    console.error(error.message);
+    throw new UnknownDatabaseError();
   }
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
 });
 
 userSchema.methods.validatePassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
+  try {
+    return await bcrypt.compare(password, this.password);
+  } catch (error) {
+    throw new UnknownDatabaseError();
+  }
 };
 
 const User = model("users", userSchema);
