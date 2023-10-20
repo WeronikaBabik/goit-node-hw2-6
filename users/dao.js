@@ -1,9 +1,14 @@
+const nanoid = require("nanoid");
 const { UnknownDatabaseError, DuplicatedKeyError } = require("../errors");
 const { User } = require("./model");
 
 const createUser = async (userData) => {
   try {
-    return await User.create(userData);
+    return await User.create({
+      ...userData,
+      verify: false,
+      verificationToken: nanoid(),
+    });
   } catch (error) {
     console.log(error);
     if (error.code === 11000) {
@@ -14,9 +19,9 @@ const createUser = async (userData) => {
   }
 };
 
-const getUser = async (email) => {
+const getUser = async (filter) => {
   try {
-    return await User.findOne({ email });
+    return await User.findOne(filter);
   } catch (error) {
     throw new UnknownDatabaseError();
   }
