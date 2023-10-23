@@ -7,11 +7,14 @@ const Jimp = require("jimp");
 const path = require("path");
 const fs = require("fs/promises");
 const mimetypes = require("mime-types");
+const { sendUserVerificationMail } = require("../helpers/mailService");
 
 const signupHandler = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const newUser = await createUser({ email, password });
+    await sendUserVerificationMail(newUser.email, newUser.verificationToken);
+
     return res.status(201).send({
       user: { email: newUser.email, subscription: newUser.subscription },
     });
@@ -26,10 +29,15 @@ const signupHandler = async (req, res, next) => {
 
 const loginHandler = async (req, res, next) => {
   try {
-    const user = await getUser(req.body.email);
-    if (!user || !(await user.validatePassword(req.body.password))) {
+    const user = await getUser({ email: req.body.email });
+    if (!user || !user.validatePassword(req.body.password)) {
       res.status(401).json({ message: "Email or password is wrong" });
     }
+
+    if (!user.verify) {
+      return res.status(403).send({ message: "User is not verified." });
+    }
+
     const userPayload = {
       email: user.email,
       subscription: user.subscription,
@@ -108,6 +116,46 @@ const getAllUsers = async (req, res) => {
     res.status(500).send({ error: error.message });
   }
 };
+
+const verifyHandler = async (req, res, next) => {
+  try {
+    const { verificationToken } = req.params;
+    const user = await getUser({ verificationToken });
+    if (!user) {
+      return res
+        .status(404)
+        .send({ message: "Verification token is not valid or expired" });
+    }
+
+    if (user.verify) {
+      return res.status(400).send({ message: "User is already verified." });
+    }
+
+    await updateUser(user.email, { verify: true, verificationToken: null });
+    return res.status(200).send({ message: "Verification successful." });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const resendVerification = async (req, res, next) => {
+  try {
+    const user = await getUser({ email: req.body.email });
+    if (!user) {
+      return res.status(404).message({ message: "User does not exist." });
+    }
+    if (user.verify) {
+      return req
+        .status(400)
+        .send({ message: "Verification has already been passed." });
+    }
+    await sendUserVerificationMail(user.email, user.verificationToken);
+    return res.status(204).send({ message: "Verification email sent" });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 module.exports = {
   signupHandler,
   loginHandler,
@@ -116,4 +164,6 @@ module.exports = {
   avatar,
   avatarHandler,
   getAllUsers,
+  verifyHandler,
+  resendVerification,
 };

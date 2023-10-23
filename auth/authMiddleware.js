@@ -14,7 +14,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     const { email } = verifyToken(token);
-    const user = await getUser(email);
+    const user = await getUser({email});
     if (!user || user.token !== token) {
       throw new Error("Token is invalid");
     }

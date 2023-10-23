@@ -8,6 +8,8 @@ const {
   avatarHandler,
   getAllUsers,
   avatar,
+  verifyHandler,
+  resendVerification,
 } = require("../../users/controller");
 const { userValidationMiddleware } = require("../../users/validators");
 const { authMiddleware } = require("../../auth/authMiddleware");
@@ -22,6 +24,8 @@ usersRouter.get("/secret", authMiddleware, (req, res) =>
 );
 usersRouter.get("/current", authMiddleware, currentHandler);
 usersRouter.get("/", getAllUsers);
+usersRouter.get("/verify/:verificationToken", verifyHandler);
+usersRouter.post("/verify", resendVerification);
 usersRouter.post("/", avatar);
 usersRouter.patch(
   "/avatars",
